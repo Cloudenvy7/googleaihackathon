@@ -51,3 +51,20 @@
 ### **[2025-12-26 05:39] Compliance Check: Gemini 3**
 * **Verification:** Confirmed `src/auditor.py` is using `MODEL_ID = "gemini-3-pro"` and the new `google-genai` SDK.
 * **Status:** Compliant with Hackathon "Action Era" rules.
+
+### **[2025-12-26] Ancestral Knowledge: The ChatGPT POC (Oct 2025)**
+* **Source Material:** "Chatgpt Model Seattle Parcel Extractions Agent - Development Logs.pdf"
+* **The "Zillow Paradox":**
+    * *Theory:* The strict rules said "Denylist Zillow/Redfin" to avoid bad data.
+    * *Practice:* The logs reveal the system *did* use Redfin/Compass as a **"Desperation Fallback"** when the official City GIS failed to return attributes.
+    * *Lesson:* The system MUST have a fallback layer. "No Data" is an unacceptable state for a user standing in front of a house.
+* **The "FeatureServer/0" Trap:**
+    * The logs confirm we moved away from FeatureServer/0 (Address Only) to FeatureServer/2 (Rich Data) because FS/0 lacked critical metrics (FAR, Lot Coverage).
+    * *Current Architecture:* We respect this decision but use FS/0 (via King County) as the **Bridge**, not the **Source**.
+
+### **[2025-12-26] Architecture Verification: The "Hybrid" Stack**
+* **The New Pipeline (Dec 2025):**
+    * **Layer 1 (The Bridge):** King County GIS acts as the "Phonebook." It resolves *any* fuzzy address (e.g., "3304 7th") to a PIN.
+    * **Layer 2 (The Gold Mine):** We query Seattle FeatureServer/2 for the 65 Attributes.
+    * **Layer 3 (The Safety Net):** If Layer 2 fails (house exists but no capacity data), we **FALLBACK** to Layer 1 data and pass it to Gemini.
+    * *Status:* This mirrors the *intent* of the POC's Zillow fallback but keeps data authoritative (County vs Commercial).
