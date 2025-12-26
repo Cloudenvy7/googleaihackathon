@@ -35,3 +35,5 @@
 * **[2025-12-26] Strategy Alignment:** Selected Target Property **3304 7th Avenue W** (PIN 3613600165).
     * **Reasoning:** Maintains consistency with prior "Architect" persona and ChatGPT POC.
     * **Objective:** Validate pipeline against **Residential Zoning** rules (e.g., NR1/NR3) rather than Commercial, to match the homebuilder/renovation use case.
+* **[2025-12-26] SESSION END:** Code updated to 'ArchitecturalFetcher' (PRD Aligned).
+* **[2025-12-26] State:** Repo synced. Ready to integrate Gemini 3 API on next login.
