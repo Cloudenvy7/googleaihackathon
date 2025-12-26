@@ -37,3 +37,17 @@
     * **Objective:** Validate pipeline against **Residential Zoning** rules (e.g., NR1/NR3) rather than Commercial, to match the homebuilder/renovation use case.
 * **[2025-12-26] SESSION END:** Code updated to 'ArchitecturalFetcher' (PRD Aligned).
 * **[2025-12-26] State:** Repo synced. Ready to integrate Gemini 3 API on next login.
+
+### **[2025-12-26 05:39] ⚠️ Engineering Pivot: The "Robust Pipeline" Logic**
+* **The Failure (The "Snob" Bug):**
+    * *Issue 1 (The Typos):* We assumed strict address matching would work. It failed because King County is pedantic ("Ave" vs "Avenue").
+    * *Issue 2 (The Data Gap):* The code logic was: *"If Seattle Capacity Database returns NULL, stop."* This was a **Critical Logical Error**.
+    * *Reality:* Many valid houses (like 3304 7th Ave W) exist physically but are not flagged as "Redevelopment Sites" by the City. The code was falsely claiming they didn't exist.
+* **The Fix (Robust Fallback Strategy):**
+    * **Logic Change:** "Rich Data if possible, Basic Data if necessary."
+    * **Implementation:** The Fetcher now attempts to get the 'Gold' (65 Attributes). If it fails, it **does not stop**. It tags the data as `KING_COUNTY_BASIC` and forces it through to the Auditor.
+    * **Gemini's Role:** Gemini 3 is now responsible for handling the ambiguity ("I see the house, but I lack zoning metrics") rather than the Fetcher killing the process.
+
+### **[2025-12-26 05:39] Compliance Check: Gemini 3**
+* **Verification:** Confirmed `src/auditor.py` is using `MODEL_ID = "gemini-3-pro"` and the new `google-genai` SDK.
+* **Status:** Compliant with Hackathon "Action Era" rules.
