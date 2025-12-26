@@ -1,155 +1,69 @@
-# 📖 The Project Bible: Seattle AI Pre-Permit Analyzer
-**Repo:** https://github.com/Cloudenvy7/googleaihackathon
-**Status:** Active Build
+# 📖 The Project Bible: Pre Permit AI (v2.0-Agentic)
+
+**Repo:** https://github.com/Cloudenvy7/googleaihackathon  
+**Status:** Active Build (Agentic Search Phase)  
 **Maintainer:** Cloudenvy7
 
+---
+
 ## 🏛️ Section 1: The Project Charter
-**Mission:** Reduce Seattle’s $367M permit backlog by validating architectural plans against *Live* Municipal Code.
-**Strategy:** "Double Dip" - Use Confluent (Dec 31) for the data pipeline and Gemini 3 (Feb 9) for the reasoning engine.
+
+**Mission:** Reduce Seattle’s $367M permit backlog by validating architectural plans against Live Municipal Code.  
+**Strategy:** "Double Dip" - Use **Confluent Cloud** (Dec 31) for the immutable data pipeline and **Gemini 3 Flash** (Dec 17) as the autonomous reasoning agent.
+
+---
 
 ## 📝 Change Log
-* **[2025-12-25] Genesis:** Project initialized in Google Cloud Shell. Repo linked
-* **[2025-12-26] Update:** Implemented 'Nervous System' (src/fetcher.py). Successfully connected Python to Confluent Cloud.
 
-## 🕰️ chronological Session Log: Phase 1 (The Nervous System)
-**Date:** 2025-12-26
+* **[2025-12-25] Genesis:** Project initialized in Google Cloud Shell. Repo linked.
+* **[2025-12-26] Nervous System:** Implemented `src/fetcher.py`. Connected Python to Confluent Cloud.
+* **[2025-12-26] The Ghost Data Fix:** Forensic pivot to Seattle FeatureServer/2 (2016 Master Record).
+* **[2025-12-26] Gemini 3 Integration:** Migration to `gemini-3-flash-preview` and agentic search logic.
 
-**1. Infrastructure & Identity Crisis**
-* **Action:** Initialized Google Cloud Shell and attempted to clone the repository.
-* **Friction:** Attempted `git push` using standard password authentication. Failed due to GitHub's 2021 security depreciation of passwords.
-* **Resolution:** Pivoted to `gh auth login` (GitHub CLI), utilizing browser-based OAuth to establish a secure, password-less link between Google Cloud and GitHub.
+---
 
-**2. The "Nervous System" Construction**
-* **Action:** Drafted `src/fetcher.py` to act as the bridge between Seattle GIS (Source) and Confluent Cloud (Sink).
-* **Action:** Generated Confluent Cloud API Keys under the identifier "Google AI Partner Hackathon".
-* **Friction:** Cloud Shell session timed out/disconnected. Upon reconnection, environment variables (API Secrets) were purged from RAM, causing the Python script to crash with "Auth Failed" and "File Not Found" errors.
-* **Resolution:** Established a strict "Atomic Execution" protocol—exporting keys and running the script in a single command block to prevent memory loss.
+## 🕰️ Chronological Session Log: Phase 2 (The Agentic Brain)
 
-**3. The Data Validity Test (The "Empty Pipe")**
-* **Action:** Executed the first live fire test against Parcel PIN `1975700575`.
-* **Observation:** The pipeline connected successfully (HTTP 200), and Confluent auth passed, BUT the Seattle GIS returned zero records. The pipe was working, but the water was dry.
-* **Correction:** We did not change the code logic; we changed the target. Pivoted to PIN `8804900985` (Capitol Hill/Derby Apt area) to force a positive data collision.
+### 1. The "Ghost Data" Paradox & Forensic Reconstruction
+* **Incident:** Valid properties (3304 7th Ave W, 11520 Roosevelt Way NE) were returning "No Data" or "Killed Parcel" errors.
+* **Discovery:** A forensic comparison with the Oct 2025 ChatGPT POC logs revealed a targeting error. We were querying a "Redevelopment Site" layer instead of the **Master Tax Roll (FeatureServer/2)**.
+* **Resolution:** Hardcoded the Fetcher to the **2016 Master Layer**. Implemented case-insensitive parsing to handle the lowercase JSON keys returned by this older API (e.g., `zoning` vs `Zoning`).
 
-**4. Current Status**
-* **State:** Ready for final validation of the Capitol Hill PIN.
-* **[2025-12-26] Strategy Alignment:** Selected Target Property **3304 7th Avenue W** (PIN 3613600165).
-    * **Reasoning:** Maintains consistency with prior "Architect" persona and ChatGPT POC.
-    * **Objective:** Validate pipeline against **Residential Zoning** rules (e.g., NR1/NR3) rather than Commercial, to match the homebuilder/renovation use case.
-* **[2025-12-26] SESSION END:** Code updated to 'ArchitecturalFetcher' (PRD Aligned).
-* **[2025-12-26] State:** Repo synced. Ready to integrate Gemini 3 API on next login.
+### 2. Gemini 3 Flash Integration (The "Action Era")
+* **Model Pivot:** Transitioned from Pro to `gemini-3-flash-preview` to leverage its superior coding performance (78% on SWE-bench) and low latency.
+* **Configuration:** * **SDK:** `google-genai` v1.47.0+.
+    * **Thinking Level:** Set to `HIGH` to ensure deep reasoning on Major Institution Overlays (MIO).
+    * **Grounding:** Enabled `Google Search` tool to solve the "Zillow Paradox."
 
-### **[2025-12-26 05:39] ⚠️ Engineering Pivot: The "Robust Pipeline" Logic**
-* **The Failure (The "Snob" Bug):**
-    * *Issue 1 (The Typos):* We assumed strict address matching would work. It failed because King County is pedantic ("Ave" vs "Avenue").
-    * *Issue 2 (The Data Gap):* The code logic was: *"If Seattle Capacity Database returns NULL, stop."* This was a **Critical Logical Error**.
-    * *Reality:* Many valid houses (like 3304 7th Ave W) exist physically but are not flagged as "Redevelopment Sites" by the City. The code was falsely claiming they didn't exist.
-* **The Fix (Robust Fallback Strategy):**
-    * **Logic Change:** "Rich Data if possible, Basic Data if necessary."
-    * **Implementation:** The Fetcher now attempts to get the 'Gold' (65 Attributes). If it fails, it **does not stop**. It tags the data as `KING_COUNTY_BASIC` and forces it through to the Auditor.
-    * **Gemini's Role:** Gemini 3 is now responsible for handling the ambiguity ("I see the house, but I lack zoning metrics") rather than the Fetcher killing the process.
+### 3. The "Zillow Paradox" & Agentic Search
+* **The Problem:** Government APIs frequently "kill" records during lot adjustments, leaving the app blind.
+* **The Strategy:** "Search First, Query Second." 
+* **Implementation:** Gemini 3 now acts as an agent. It searches Zillow/Redfin to verify the 10-digit PIN before the app ever touches a government database.
+* **Success:** PIN `2044500090` (Roosevelt) successfully resolved via web-grounding after official API failures.
 
-### **[2025-12-26 05:39] Compliance Check: Gemini 3**
-* **Verification:** Confirmed `src/auditor.py` is using `MODEL_ID = "gemini-3-pro"` and the new `google-genai` SDK.
-* **Status:** Compliant with Hackathon "Action Era" rules.
+### 4. Technical Incident: The "Thinking" Buffer
+* **Issue:** Cloud Run deployments initially failed to resolve PINs that worked in the terminal.
+* **Root Cause:** Gemini 3's "Thinking" monologue was being read by the UI as the final answer.
+* **Fix:** Implemented "Response Harvesting" in `src/auditor.py` to iterate through all response parts and extract the PIN using RegEx.
 
-### **[2025-12-26] Ancestral Knowledge: The ChatGPT POC (Oct 2025)**
-* **Source Material:** "Chatgpt Model Seattle Parcel Extractions Agent - Development Logs.pdf"
-* **The "Zillow Paradox":**
-    * *Theory:* The strict rules said "Denylist Zillow/Redfin" to avoid bad data.
-    * *Practice:* The logs reveal the system *did* use Redfin/Compass as a **"Desperation Fallback"** when the official City GIS failed to return attributes.
-    * *Lesson:* The system MUST have a fallback layer. "No Data" is an unacceptable state for a user standing in front of a house.
-* **The "FeatureServer/0" Trap:**
-    * The logs confirm we moved away from FeatureServer/0 (Address Only) to FeatureServer/2 (Rich Data) because FS/0 lacked critical metrics (FAR, Lot Coverage).
-    * *Current Architecture:* We respect this decision but use FS/0 (via King County) as the **Bridge**, not the **Source**.
+---
 
-### **[2025-12-26] Architecture Verification: The "Hybrid" Stack**
-* **The New Pipeline (Dec 2025):**
-    * **Layer 1 (The Bridge):** King County GIS acts as the "Phonebook." It resolves *any* fuzzy address (e.g., "3304 7th") to a PIN.
-    * **Layer 2 (The Gold Mine):** We query Seattle FeatureServer/2 for the 65 Attributes.
-    * **Layer 3 (The Safety Net):** If Layer 2 fails (house exists but no capacity data), we **FALLBACK** to Layer 1 data and pass it to Gemini.
-    * *Status:* This mirrors the *intent* of the POC's Zillow fallback but keeps data authoritative (County vs Commercial).
+## 🏗️ Architecture Verification: The "Hybrid" Stack
 
-### **[2025-12-26 06:16] MAJOR MILESTONE: The "Ghost Data" Breakthrough & Gemini 3 Stabilization**
+| Layer | Component | Source of Truth |
+| :--- | :--- | :--- |
+| **Layer 1 (Identity)** | Gemini 3 Agent | Web Search (Zillow/Redfin) for PIN Discovery. |
+| **Layer 2 (Attributes)** | Seattle GIS FS/2 | The 2016 Master Record for Zoning/FAR metrics. |
+| **Layer 3 (Pipeline)** | Confluent Cloud | Kafka topic `site.fetch.completed` for auditing. |
+| **Layer 4 (Verdict)** | Gemini 3 Flash | Reasoning Engine (High Thinking Level). |
 
-#### **1. The Critical Failure Mode: "The Ghost Data Paradox"**
-* **Symptoms:** The data pipeline was functional but consistently returned "No Data" for valid, physically existing residential properties (specifically **3304 7th Ave W**).
-* **Initial Diagnosis (Incorrect):** We assumed the property was missing from the city's dataset entirely or that our PIN resolution was flawed.
-* **Root Cause Discovery:** A forensic comparison between the successful **ChatGPT POC logs (Oct 2025)** and our failing **Python Fetcher** revealed a subtle but catastrophic targeting error.
-    * **The Wrong Target:** We were querying the `Zoned_Development_Capacity_by_Development_Site_Current` layer. This dataset *only* tracks sites actively flagged for redevelopment or vacancy. It excludes the vast majority of stable, existing housing stock.
-    * **The Right Target:** The ChatGPT POC logs proved that the `Zoned_Development_Capacity_Layers_2016` (FeatureServer/2) acts as the **Master Record** for *all* parcels, regardless of their current development status.
+---
 
-#### **2. Engineering Pivot: The "Hybrid Truth" Architecture**
-To resolve this, we implemented a strict "Source of Truth" hierarchy in `src/fetcher.py`:
-* **Layer 1 (Identity):** **King County GIS** remains the authoritative source for address resolution and PIN discovery ("The Phonebook").
-* **Layer 2 (Attributes):** **City of Seattle FeatureServer/2 (2016)** is now the exclusive source for zoning metrics ("The Spec Sheet").
-* **Technical Fixes:**
-    * **URL Swap:** Hardcoded the fetcher to point to the 2016 endpoint identified in the POC logs.
-    * **Case-Insensitive Parsing:** Updated parsing logic to handle the lowercase keys (e.g., `zoning` vs `Zoning`) specific to the 2016 API, resolving the "None" value bug.
-
-#### **3. The Reasoning Engine: Gemini 3 Pro (Preview) Integration**
-We successfully migrated the `src/auditor.py` logic to the **Action Era** standard.
-* **Model Identification:** Overcame a persistent  error by identifying the correct Hackathon-specific model ID: **`gemini-3-pro-preview`**.
-* **Reasoning Management:**
-    * **Thinking Process:** Gemini 3 is a "Reasoning Model" that outputs internal monologue before its final answer. We updated the prompt structure to force a strict JSON response, preventing the "Thinking" text from crashing the JSON parser.
-    * **Strict Mode:** Implemented a "No Hallucination" protocol. If the data source is tagged `KING_COUNTY_BASIC` (meaning City data is missing), Gemini is now explicitly instructed to return an "Unknown" verdict rather than guessing zoning based on the address.
-
-#### **4. Final Validation (PIN 3613600165)**
-* **Input:** "3304 7th Ave W"
-* **Execution Chain:**
-    1.  **Resolution:** King County resolved address to PIN `3613600165`.
-    2.  **Extraction:** Fetcher successfully pulled 65+ attributes from the 2016 Layer, including:
-        * **Zoning:** `MIO-37-LR1` (Major Institution Overlay, Lowrise 1).
-        * **FAR Utilization:** `0.2` (indicating massive expansion potential).
-        * **Lot Size:** `7,902 sq ft`.
-    3.  **Analysis:** Gemini 3 Pro (Preview) analyzed these specific metrics.
-* **The Verdict:** **PASS.**
-    * *Reasoning:* "Highly viable... allows for multiple detached structures (infill development)... well under the density limit."
-    * *Accuracy Check:* The AI correctly identified the MIO overlay (37ft height limit) and the LR1 zoning benefits, proving it was reasoning on *actual* data, not hallucinating.
-
-#### **5. Project Status**
-* **Current State:** **PRODUCTION READY.**
-* **Components:**
-    * **Fetcher:** Robust, accurate, and pointed at the correct Master Data layer.
-    * **Auditor:** Connected to Gemini 3 Pro Preview, parsing complex reasoning into clean JSON.
-    * **Pipeline:** End-to-end flow from "Fuzzy Address" to "Architectural Verdict" is fully operational.
-
-### **[2025-12-26 09:07] COMPREHENSIVE UPDATE: The "Ghost Data" Reconstruction**
-
-#### **1. The Anomaly: "The Ghost Data Paradox"**
-* **The Issue:** The project faced a critical blocking issue where valid, existing residential properties (specifically **3304 7th Ave W**) were returning "No Data" from the City of Seattle API.
-* **The Symptom:** While King County (Layer 1) correctly resolved the address to PIN `3613600165`, the City of Seattle Capacity Check (Layer 2) consistently failed. This forced the system into a "Safety Net" mode where it could not perform deep architectural analysis.
-* **The False Assumption:** Standard development platforms (and earlier iterations of this code) mistakenly assumed the `Zoned_Development_Capacity_by_Development_Site_Current` layer was the master record. We discovered this layer implies "Current Redevelopment Status" (vacant/under-utilized land), effectively making stable existing homes invisible to the API.
-
-#### **2. The Discovery: Forensic Log Analysis**
-* **The Breakthrough:** The turning point occurred when we compared the failing Python logs against a successful "Deep Search" performed by a separate ChatGPT model instance (October 2025 logs).
-* **The Smoking Gun:**
-    * **Failing URL (Python):** `.../Zoned_Development_Capacity_by_Development_Site_Current/FeatureServer/0`
-    * **Working URL (ChatGPT POC):** `.../Zoned_Development_Capacity_Layers_2016/FeatureServer/2`
-* **Conclusion:** The data wasn't missing; we were looking in the wrong filing cabinet. The "2016" layer acts as the **Master Tax Roll** for the city, containing the 65+ attributes for *all* parcels, not just active redevelopment sites.
-
-#### **3. Engineering Pivot: The "Hybrid Truth" Architecture**
-We re-engineered the `src/fetcher.py` and `src/auditor.py` modules to implement a strict "Source of Truth" hierarchy:
-
-* **Step A: The Fetcher (Data Ingestion)**
-    * **Target Correction:** Hardcoded the Fetcher to query the **FeatureServer/2 (2016)** endpoint.
-    * **Schema Adaptation:** The 2016 API returns JSON keys in lowercase (e.g., `zoning`, `land_use_desc`) compared to the CamelCase of the Current API. We updated the parsing logic to handle these specific key formats, resolving the "Zoning: None" bug.
-    * **Transport:** Validated that the full 65-attribute payload is successfully serialized and transmitted via **Confluent Cloud** on topic `site.fetch.completed`.
-
-* **Step B: The Auditor (Data Processing & AI)**
-    * **Model Stabilization:** Identified and fixed a `404 Not Found` error with the Gemini 3 API. We explicitly locked the client to `gemini-3-pro-preview` to bypass General Availability restrictions common in hackathon environments.
-    * **Thinking vs. Speaking:** Addressed the "Chatty AI" issue where Gemini 3's internal reasoning monologue broke the JSON parser. We implemented a strict system prompt that enforces valid JSON output only.
-    * **Verification Mode:** Added a "Data Dump" feature to the Auditor that intercepts the Confluent message and writes the raw JSON to disk (`parcel_{PIN}_data.json`). This proves we are not just getting an AI summary, but the raw, exportable government data.
-
-#### **4. Final System Validation**
-* **Test Subject:** PIN `3613600165` (3304 7th Ave W).
-* **Success Metrics:**
-    1.  **Extraction:** Successfully retrieved the full 65+ attribute dataset (previously inaccessible).
-    2.  **Accuracy:** Validated key metrics against the ChatGPT POC:
-        * **Zoning:** `MIO-37-LR1` (Matches).
-        * **Use:** `Duplex` (Matches).
-        * **Lot Size:** `7,902 sq ft` (Matches).
-    3.  **Pipeline Integrity:** Data flowed from Fetcher -> Confluent -> Auditor -> JSON File without loss.
-
-#### **5. Project Status**
+## 🏁 Final System Validation
+* **Test Case:** 11520 Roosevelt Way NE (A "Killed" Parcel).
+* **Result:** **PASS**.
+* **Execution:** Agent searched web -> Found PIN 2044500090 -> Fetched "SF 7200" zoning -> Gemini 3 performed DADU audit.
 * **State:** **PRODUCTION READY.**
-* **Deliverable:** A fully functional, verified data pipeline that acts as a bridge between "Fuzzy User Addresses" and "Deep City Zoning Data," capable of exporting clean JSON for downstream architectural analysis.
+
+---
+**Build Maintainer:** Cloudenvy7 | **AI Thought Partner:** Gemini
