@@ -112,3 +112,44 @@ We successfully migrated the `src/auditor.py` logic to the **Action Era** standa
     * **Fetcher:** Robust, accurate, and pointed at the correct Master Data layer.
     * **Auditor:** Connected to Gemini 3 Pro Preview, parsing complex reasoning into clean JSON.
     * **Pipeline:** End-to-end flow from "Fuzzy Address" to "Architectural Verdict" is fully operational.
+
+### **[2025-12-26 09:07] COMPREHENSIVE UPDATE: The "Ghost Data" Reconstruction**
+
+#### **1. The Anomaly: "The Ghost Data Paradox"**
+* **The Issue:** The project faced a critical blocking issue where valid, existing residential properties (specifically **3304 7th Ave W**) were returning "No Data" from the City of Seattle API.
+* **The Symptom:** While King County (Layer 1) correctly resolved the address to PIN `3613600165`, the City of Seattle Capacity Check (Layer 2) consistently failed. This forced the system into a "Safety Net" mode where it could not perform deep architectural analysis.
+* **The False Assumption:** Standard development platforms (and earlier iterations of this code) mistakenly assumed the `Zoned_Development_Capacity_by_Development_Site_Current` layer was the master record. We discovered this layer implies "Current Redevelopment Status" (vacant/under-utilized land), effectively making stable existing homes invisible to the API.
+
+#### **2. The Discovery: Forensic Log Analysis**
+* **The Breakthrough:** The turning point occurred when we compared the failing Python logs against a successful "Deep Search" performed by a separate ChatGPT model instance (October 2025 logs).
+* **The Smoking Gun:**
+    * **Failing URL (Python):** `.../Zoned_Development_Capacity_by_Development_Site_Current/FeatureServer/0`
+    * **Working URL (ChatGPT POC):** `.../Zoned_Development_Capacity_Layers_2016/FeatureServer/2`
+* **Conclusion:** The data wasn't missing; we were looking in the wrong filing cabinet. The "2016" layer acts as the **Master Tax Roll** for the city, containing the 65+ attributes for *all* parcels, not just active redevelopment sites.
+
+#### **3. Engineering Pivot: The "Hybrid Truth" Architecture**
+We re-engineered the `src/fetcher.py` and `src/auditor.py` modules to implement a strict "Source of Truth" hierarchy:
+
+* **Step A: The Fetcher (Data Ingestion)**
+    * **Target Correction:** Hardcoded the Fetcher to query the **FeatureServer/2 (2016)** endpoint.
+    * **Schema Adaptation:** The 2016 API returns JSON keys in lowercase (e.g., `zoning`, `land_use_desc`) compared to the CamelCase of the Current API. We updated the parsing logic to handle these specific key formats, resolving the "Zoning: None" bug.
+    * **Transport:** Validated that the full 65-attribute payload is successfully serialized and transmitted via **Confluent Cloud** on topic `site.fetch.completed`.
+
+* **Step B: The Auditor (Data Processing & AI)**
+    * **Model Stabilization:** Identified and fixed a `404 Not Found` error with the Gemini 3 API. We explicitly locked the client to `gemini-3-pro-preview` to bypass General Availability restrictions common in hackathon environments.
+    * **Thinking vs. Speaking:** Addressed the "Chatty AI" issue where Gemini 3's internal reasoning monologue broke the JSON parser. We implemented a strict system prompt that enforces valid JSON output only.
+    * **Verification Mode:** Added a "Data Dump" feature to the Auditor that intercepts the Confluent message and writes the raw JSON to disk (`parcel_{PIN}_data.json`). This proves we are not just getting an AI summary, but the raw, exportable government data.
+
+#### **4. Final System Validation**
+* **Test Subject:** PIN `3613600165` (3304 7th Ave W).
+* **Success Metrics:**
+    1.  **Extraction:** Successfully retrieved the full 65+ attribute dataset (previously inaccessible).
+    2.  **Accuracy:** Validated key metrics against the ChatGPT POC:
+        * **Zoning:** `MIO-37-LR1` (Matches).
+        * **Use:** `Duplex` (Matches).
+        * **Lot Size:** `7,902 sq ft` (Matches).
+    3.  **Pipeline Integrity:** Data flowed from Fetcher -> Confluent -> Auditor -> JSON File without loss.
+
+#### **5. Project Status**
+* **State:** **PRODUCTION READY.**
+* **Deliverable:** A fully functional, verified data pipeline that acts as a bridge between "Fuzzy User Addresses" and "Deep City Zoning Data," capable of exporting clean JSON for downstream architectural analysis.
