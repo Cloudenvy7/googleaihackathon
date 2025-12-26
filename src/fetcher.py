@@ -6,7 +6,6 @@ import requests
 from confluent_kafka import Producer
 
 # --- CONFIGURATION ---
-# PRD Source: FeatureServer/2 "Zoned Development Capacity"
 SEATTLE_GIS_URL = "https://services.arcgis.com/ZOyb2t4B0UYuYNYH/arcgis/rest/services/Zoned_Development_Capacity_by_Development_Site_Current/FeatureServer/2/query"
 KAFKA_TOPIC = "site.fetch.completed"
 
@@ -25,7 +24,7 @@ class SeattleGISFetcher:
         self.producer = Producer(CONF)
 
     def fetch_parcel_data(self, parcel_id: str):
-        print(f"📡 Fetching Live Truth for PIN: {parcel_id}...")
+        print(f"📡 Fetching Live Truth for PIN: {parcel_id} (3304 7th Ave W)...")
         params = {
             "where": f"PIN = '{parcel_id}'",
             "outFields": "*", 
@@ -46,6 +45,7 @@ class SeattleGISFetcher:
             attrs = feature["attributes"]
             
             print(f"✅ FOUND: Parcel {attrs.get('PIN')}")
+            print(f"   - Target: 3304 7th Ave W (Residential Control)")
             print(f"   - Zoning: {attrs.get('ZONING')}")
             print(f"   - Lot Area: {attrs.get('PARCEL_AREA_SQ_FT')} sqft")
             return feature
@@ -76,9 +76,9 @@ class SeattleGISFetcher:
             print(f"❌ KAFKA ERROR: {e}")
 
 if __name__ == "__main__":
-    # Test PIN: 1975700575
+    # CONTROL VARIABLE: 3304 7th Ave W -> PIN 3613600165
     tool = SeattleGISFetcher()
-    data = tool.fetch_parcel_data("1975700575")
+    data = tool.fetch_parcel_data("3613600165")
     if data:
         event = tool.create_truth_event(data)
         tool.publish(event)
