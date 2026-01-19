@@ -1,34 +1,63 @@
-import os, json, time, requests
+import os
+import uuid
+import json
+import requests
+from datetime import datetime
 from confluent_kafka import Producer
 
-API_URL = "https://services.arcgis.com/ZOyb2t4B0UYuYNYH/arcgis/rest/services/Zoned_Development_Capacity_Layers_2016/FeatureServer/2/query"
+# Source of Truth for Zoning Name (NR3)
+URL_L0 = "https://services.arcgis.com/ZO977sSpxYbk3ZJu/arcgis/rest/services/Current_Land_Use_Zoning_Detail/FeatureServer/0/query"
+# Source for Parcel Stats (Sqft)
+URL_L2 = "https://services.arcgis.com/ZO977sSpxYbk3ZJu/arcgis/rest/services/Zoned_Development_Capacity_2016/FeatureServer/2/query"
 
 class ArchitecturalFetcher:
     def __init__(self):
-        try:
-            conf = {
-                'bootstrap.servers': os.environ.get('BOOTSTRAP_SERVERS'),
-                'security.protocol': 'SASL_SSL',
-                'sasl.mechanisms': 'PLAIN',
-                'sasl.username': os.environ.get('SASL_USERNAME'),
-                'sasl.password': os.environ.get('SASL_PASSWORD')
-            }
-            self.producer = Producer(conf) if os.environ.get('SASL_USERNAME') else None
-        except:
-            self.producer = None
+        conf = {
+            'bootstrap.servers': os.getenv('BOOTSTRAP_SERVERS'),
+            'security.protocol': 'SASL_SSL',
+            'sasl.mechanisms': 'PLAIN',
+            'sasl.username': os.getenv('SASL_USERNAME'),
+            'sasl.password': os.getenv('SASL_PASSWORD'),
+        }
+        self.producer = Producer(conf) if os.getenv('SASL_USERNAME') else None
+        self.topic = "site.fetch.completed"
 
-    def fetch_architectural_data(self, pin):
-        try:
-            p = {"where": f"PIN = '{pin}'", "outFields": "*", "f": "json", "returnGeometry": "false"}
-            res = requests.get(API_URL, params=p).json()
-            if res.get("features"):
-                return {k.lower(): v for k, v in res["features"][0]["attributes"].items()}
-            return {"error": "PIN not found in Seattle dataset"}
-        except:
-            return {"error": "API Connection Failed"}
+    def execute_major_pull(self, pin, address_input):
+        trace_id = str(uuid.uuid4())
+        action_ts = datetime.utcnow().isoformat() + "Z"
+        
+        l0_data = self._query(URL_L0, pin)
+        l2_data = self._query(URL_L2, pin)
 
-    def publish_audit_event(self, data):
+        # Merge for Kevin's Ingestion
+        ingestible = {
+            "project_address": address_input.upper(),
+            "zoning_designation": l0_data.get("ZONING", "UNKNOWN"),
+            "lot_area_sqft": l2_data.get("LAND_SQFT"),
+            "mha_zone": l2_data.get("MHA_ZONING"),
+            "resolution_method": "Multi_Layer_Deterministic_Merge"
+        }
+
+        # The Traceable Audit Envelope
+        audit_envelope = {
+            "audit_metadata": {"trace_id": trace_id, "timestamp": action_ts},
+            "ingestible_data": ingestible,
+            "provenance_ledger": [
+                {"source": "Layer_0_Zoning", "purpose": "Current Name", "raw": l0_data},
+                {"source": "Layer_2_Capacity", "purpose": "Parcel Stats", "raw": l2_data}
+            ]
+        }
+
         if self.producer:
-            msg = {"timestamp": time.time(), "data": data}
-            self.producer.produce(topic="site.fetch.completed", value=json.dumps(msg))
+            self.producer.produce(self.topic, key=pin, value=json.dumps(audit_envelope))
             self.producer.flush()
+        
+        return audit_envelope
+
+    def _query(self, url, pin):
+        params = {"where": f"PIN = '{pin}'", "outFields": "*", "f": "json"}
+        try:
+            resp = requests.get(url, params=params, timeout=10)
+            return resp.json().get("features", [{}])[0].get("attributes", {})
+        except:
+            return {}
