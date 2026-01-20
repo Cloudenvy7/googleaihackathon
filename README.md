@@ -1,24 +1,14 @@
 ## Hackathon Submission Snapshot and Development Notice
 
-This repository’s `main` branch is intentionally maintained as a frozen
-snapshot of the project submitted to the **AI Partner Catalyst Hackathon
-(Google Cloud Partnerships)** prior to the December 31, 2025 submission
-deadline.
+This repository’s main branch is intentionally maintained as a frozen snapshot of the project submitted to the **AI Partner Catalyst Hackathon (Google Cloud Partnerships)** prior to the December 31, 2025 submission deadline.
 
-All functionality, architecture, and documentation on the `main` branch
-correspond to that submission and are preserved for judging and review
-purposes.
+All functionality, architecture, and documentation on the main branch correspond to that submission and are preserved for judging and review purposes.
 
-Subsequent exploratory and forward-looking development related to the
-**Gemini 3 API Hackathon** began only after the official start of that
-hackathon and is isolated to a separate branch. That work is not part of
-the AI Partner Catalyst Hackathon submission and does not modify this
-snapshot.
+Subsequent exploratory and forward-looking development related to the **Gemini 3 API Hackathon** began only after the official start of that hackathon and is isolated to a separate branch. That work is not part of the AI Partner Catalyst Hackathon submission and does not modify this snapshot.
 
-This structure ensures that the project remains eligible for both
-hackathons, with each submission evaluated strictly against its
-respective rules, timelines, and requirements.
+This structure ensures that the project remains eligible for both hackathons, with each submission evaluated strictly against its respective rules, timelines, and requirements.
 
+**References to Gemini 3 in this README reflect the original architecture and submission scope of the AI Partner Catalyst Hackathon.**
 
 
 
