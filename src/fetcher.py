@@ -5,9 +5,8 @@ import requests
 from datetime import datetime
 from confluent_kafka import Producer
 
-# Source of Truth for Zoning Name (NR3)
+# SEATTLE GIS REPOS
 URL_L0 = "https://services.arcgis.com/ZO977sSpxYbk3ZJu/arcgis/rest/services/Current_Land_Use_Zoning_Detail/FeatureServer/0/query"
-# Source for Parcel Stats (Sqft)
 URL_L2 = "https://services.arcgis.com/ZO977sSpxYbk3ZJu/arcgis/rest/services/Zoned_Development_Capacity_2016/FeatureServer/2/query"
 
 class ArchitecturalFetcher:
@@ -29,22 +28,23 @@ class ArchitecturalFetcher:
         l0_data = self._query(URL_L0, pin)
         l2_data = self._query(URL_L2, pin)
 
-        # Merge for Kevin's Ingestion
+        # Standardizing fields to ensure NR3 is captured regardless of layer field names
+        zoning = l0_data.get("ZONING") or l0_data.get("ZONING_CLASSIFICATION") or "UNKNOWN"
+
         ingestible = {
             "project_address": address_input.upper(),
-            "zoning_designation": l0_data.get("ZONING", "UNKNOWN"),
-            "lot_area_sqft": l2_data.get("LAND_SQFT"),
-            "mha_zone": l2_data.get("MHA_ZONING"),
-            "resolution_method": "Multi_Layer_Deterministic_Merge"
+            "zoning_designation": zoning,
+            "lot_area_sqft": l2_data.get("LAND_SQFT", 0),
+            "mha_zone": l2_data.get("MHA_ZONING", "None"),
+            "resolution_method": "Multi_Layer_Deterministic_Merge_v3.4"
         }
 
-        # The Traceable Audit Envelope
         audit_envelope = {
-            "audit_metadata": {"trace_id": trace_id, "timestamp": action_ts},
+            "audit_metadata": {"trace_id": trace_id, "timestamp": action_ts, "version": "3.4"},
             "ingestible_data": ingestible,
             "provenance_ledger": [
-                {"source": "Layer_0_Zoning", "purpose": "Current Name", "raw": l0_data},
-                {"source": "Layer_2_Capacity", "purpose": "Parcel Stats", "raw": l2_data}
+                {"source": "Layer_0_Current_Zoning", "purpose": "Zoning Name (NR3)", "raw": l0_data},
+                {"source": "Layer_2_Capacity_2016", "purpose": "Physical Attributes", "raw": l2_data}
             ]
         }
 
@@ -58,6 +58,7 @@ class ArchitecturalFetcher:
         params = {"where": f"PIN = '{pin}'", "outFields": "*", "f": "json"}
         try:
             resp = requests.get(url, params=params, timeout=10)
-            return resp.json().get("features", [{}])[0].get("attributes", {})
+            features = resp.json().get("features", [])
+            return features[0].get("attributes", {}) if features else {}
         except:
             return {}
